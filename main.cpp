@@ -3,9 +3,11 @@
 #include "Adafruit_SSD1306.h"
 #include "STM32_USB48MHz.h"
 #include "USBSerial.h"
+#include "USBMSD_SD.h"
 
 #define RELAY_BOARD_ADDR (0X3C)
 DigitalOut  usbEn(PB_9);
+
 
 // an I2C sub-class that provides a constructed default
 class I2CPreInit : public I2C
@@ -26,14 +28,16 @@ Adafruit_SSD1306_I2c gOled2(gI2C, D4);
    
 //SPIPreInit gSpi(p5,NC,p7);
 //Adafruit_SSD1306_Spi gOled1(gSpi,p26,p25,p24);
+ extern char ROM[];
  
 int main()
 {   uint16_t x=0;
 //	usbEn = 0;
     STM32_HSI_USB48MHz();  
 	Serial    pc(PA_2, PA_3);
+	//USBMSD_SD sd(PB_5, PB_4, PB_3, PA_15);
 	USBSerial serial; // tx, rx
-	serial.printf("Hello World!\n");
+	//serial.printf("Hello World!\n");
 	gOled2.splash();
 	gOled2.printf("%ux%u OLED Display\r\n", gOled2.width(), gOled2.height());
     gOled2.display();
@@ -44,15 +48,29 @@ int main()
     
     data_write[0] = 0x12;
     data_write[1] = 0x02;	
-    
+    unsigned short addr;
+	char cmd;
     while(1)
     {
         led1 = !led1;
 		
-		serial.printf("COUNT:%u\r",x);
-        gOled2.printf("COUNT:%u\r",x++);
-        gOled2.display();
-        gOled2.display();
-        wait(1.0);
+		if (serial.available())
+		{
+			//serial.scanf("%c%uh", &cmd, &addr);
+			cmd = serial._getc();
+			addr = serial._getc() + serial._getc() << 8; 
+			serial._putc(cmd);
+			if (addr < 16*47)
+			{
+				serial._putc(addr);
+			}
+			else
+				serial._putc(addr);
+		}
+		//serial.printf("COUNT:%u\r",x);
+        //gOled2.printf("COUNT:%u\r",x++);
+        //gOled2.display();
+        //gOled2.display();
+        //wait(1.0);
     }
 }
